@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}{% if todo %}Edit Todo{% else %}New Todo{% endif %} — Work Todos{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-body py-3">
+                <h1 class="h4 mb-0">
+                    {% if todo %}
+                        <i class="bi bi-pencil-square me-2 text-primary"></i>Edit Todo
+                    {% else %}
+                        <i class="bi bi-plus-circle me-2 text-primary"></i>New Todo
+                    {% endif %}
+                </h1>
+            </div>
+            <div class="card-body p-4">
+                <form method="post" id="todo-form">
+                    <div class="mb-3">
+                        <label for="title" class="form-label fw-semibold">Title <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control form-control-lg" id="title" name="title"
+                               value="{{ title }}" placeholder="What needs to be done?" required maxlength="200">
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="due_date" class="form-label fw-semibold">Due date</label>
+                            <input type="date" class="form-control" id="due_date" name="due_date" value="{{ due_date }}">
+                            <div class="form-text">Optional deadline for this todo.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="tags" class="form-label fw-semibold">Tags</label>
+                            <input type="text" class="form-control" id="tags" name="tags" value="{{ tags }}"
+                                   list="tag-suggestions" placeholder="work, urgent, home">
+                            <datalist id="tag-suggestions">
+                                {% for category in all_categories %}
+                                <option value="{{ category.display_name }}"></option>
+                                {% endfor %}
+                            </datalist>
+                            <div class="form-text">Comma-separated tags. Existing tags are suggested as you type.</div>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Description</label>
+                        <div id="editor">{{ description | safe }}</div>
+                        <input type="hidden" name="description" id="description">
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save me-1"></i>{% if todo %}Save Changes{% else %}Create Todo{% endif %}
+                        </button>
+                        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+<script>
+    const quill = new Quill('#editor', {
+        theme: 'snow',
+        placeholder: 'Add details, links, lists, and formatting...',
+        modules: {
+            toolbar: [
+                [{ header: [1, 2, 3, false] }],
+                ['bold', 'italic', 'underline', 'strike'],
+                [{ list: 'ordered' }, { list: 'bullet' }],
+                ['blockquote', 'code-block'],
+                ['link'],
+                ['clean']
+            ]
+        }
+    });
+
+    document.getElementById('todo-form').addEventListener('submit', function () {
+        document.getElementById('description').value = quill.root.innerHTML;
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+
+{% block title %}Todos — Work Todos{% endblock %}
+{% block main_class %}container-fluid px-4 px-lg-5{% endblock %}
+{% block nav_class %}container-fluid px-4 px-lg-5{% endblock %}
+
+{% block content %}
+<div class="index-layout">
+    <div class="index-main">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+            <div>
+                <h1 class="h3 mb-1">Your Todos</h1>
+                <p class="text-muted mb-0">Manage tasks with rich descriptions, tags, and due dates.</p>
+            </div>
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                {% if all_categories %}
+                <form method="get" id="category-filter-form" class="d-flex align-items-center gap-2">
+                    <input type="hidden" name="filter" value="{{ filter_status }}">
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button"
+                                data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                            <i class="bi bi-tags me-1"></i>
+                            Tags
+                            {% if selected_category_ids %}
+                                <span class="badge text-bg-primary ms-1">{{ selected_category_ids|length }}</span>
+                            {% endif %}
+                        </button>
+                        <ul class="dropdown-menu category-filter-menu p-2 shadow">
+                            {% for category in all_categories %}
+                            <li>
+                                <label class="dropdown-item rounded d-flex align-items-center gap-2">
+                                    <input class="form-check-input mt-0" type="checkbox" name="categories"
+                                           value="{{ category.id }}"
+                                           {% if category.id in selected_category_ids %}checked{% endif %}>
+                                    <span>{{ category.display_name }}</span>
+                                </label>
+                            </li>
+                            {% endfor %}
+                            <li><hr class="dropdown-divider my-2"></li>
+                            <li class="d-flex gap-2 px-2">
+                                <button type="submit" class="btn btn-primary btn-sm flex-grow-1">Apply</button>
+                                <a href="{{ url_for('index', filter=filter_status) }}"
+                                   class="btn btn-outline-secondary btn-sm">Clear</a>
+                            </li>
+                        </ul>
+                    </div>
+                </form>
+                {% endif %}
+                <ul class="nav filter-pills mb-0">
+                    <li class="nav-item">
+                        <a class="nav-link {% if filter_status == 'all' %}active bg-primary text-white{% else %}text-secondary{% endif %}"
+                           href="{{ url_for('index', filter='all', categories=selected_category_ids) }}">All</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if filter_status == 'active' %}active bg-primary text-white{% else %}text-secondary{% endif %}"
+                           href="{{ url_for('index', filter='active', categories=selected_category_ids) }}">Active</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if filter_status == 'completed' %}active bg-primary text-white{% else %}text-secondary{% endif %}"
+                           href="{{ url_for('index', filter='completed', categories=selected_category_ids) }}">Completed</a>
+                    </li>
+                </ul>
+                <a href="{{ url_for('create_todo') }}" class="btn btn-primary btn-sm">
+                    <i class="bi bi-plus-lg me-1"></i>New Todo
+                </a>
+            </div>
+        </div>
+
+        {% if selected_category_ids and all_categories %}
+        <div class="mb-3">
+            {% for category in all_categories if category.id in selected_category_ids %}
+            <span class="badge text-bg-secondary tag-badge me-1">{{ category.display_name }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if todos %}
+            <div class="row g-3">
+                {% for todo in todos %}
+                <div class="col-12">
+                    <div class="card todo-card shadow-sm border-0 {% if todo.completed %}border-start border-success border-4{% elif todo.is_overdue %}border-start border-danger border-4{% else %}border-start border-primary border-4{% endif %}">
+                        <div class="card-body">
+                            <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+                                <div class="flex-grow-1">
+                                    <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                                        {% if todo.completed %}
+                                            <span class="badge text-bg-success"><i class="bi bi-check-circle me-1"></i>Completed</span>
+                                        {% else %}
+                                            <span class="badge text-bg-primary"><i class="bi bi-circle me-1"></i>Active</span>
+                                        {% endif %}
+                                        <small class="text-muted">
+                                            <i class="bi bi-calendar-plus me-1"></i>
+                                            Created {{ todo.created_at_local.strftime('%b %d, %Y') }}
+                                        </small>
+                                        {% if todo.due_date %}
+                                        <small class="{% if todo.is_overdue %}text-danger fw-semibold{% elif todo.is_due_today %}text-warning fw-semibold{% else %}text-muted{% endif %}">
+                                            <i class="bi bi-calendar-event me-1"></i>
+                                            Due {{ todo.due_date.strftime('%b %d, %Y') }}
+                                            {% if todo.is_overdue %}<span class="badge text-bg-danger ms-1">Overdue</span>{% elif todo.is_due_today %}<span class="badge text-bg-warning ms-1">Today</span>{% endif %}
+                                        </small>
+                                        {% endif %}
+                                    </div>
+                                    <h2 class="h5 todo-title mb-2 {% if todo.completed %}completed{% endif %}">{{ todo.title }}</h2>
+                                    {% if todo.categories %}
+                                    <div class="mb-2">
+                                        {% for category in todo.categories|sort(attribute='name') %}
+                                        <span class="badge rounded-pill text-bg-light border tag-badge me-1">{{ category.display_name }}</span>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                    {% if todo.description %}
+                                    <div class="todo-description text-secondary">
+                                        {{ todo.description | safe }}
+                                    </div>
+                                    {% else %}
+                                    <p class="text-muted fst-italic mb-0">No description provided.</p>
+                                    {% endif %}
+                                </div>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <form action="{{ url_for('toggle_todo', todo_id=todo.id) }}" method="post">
+                                        <button type="submit" class="btn btn-sm {% if todo.completed %}btn-outline-secondary{% else %}btn-success{% endif %}">
+                                            {% if todo.completed %}
+                                                <i class="bi bi-arrow-counterclockwise me-1"></i>Reopen
+                                            {% else %}
+                                                <i class="bi bi-check-lg me-1"></i>Complete
+                                            {% endif %}
+                                        </button>
+                                    </form>
+                                    <a href="{{ url_for('edit_todo', todo_id=todo.id) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-pencil me-1"></i>Edit
+                                    </a>
+                                    <form action="{{ url_for('delete_todo', todo_id=todo.id) }}" method="post"
+                                          onsubmit="return confirm('Delete this todo?');">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center py-5">
+                <div class="display-1 text-muted mb-3"><i class="bi bi-inbox"></i></div>
+                <h2 class="h4">No todos found</h2>
+                <p class="text-muted mb-4">
+                    {% if selected_category_ids %}
+                        No todos match the selected tags. Try clearing the tag filter.
+                    {% elif filter_status == 'active' %}
+                        You have no active todos. Great job!
+                    {% elif filter_status == 'completed' %}
+                        No completed todos to show.
+                    {% else %}
+                        Create your first todo to get started.
+                    {% endif %}
+                </p>
+                <a href="{{ url_for('create_todo') }}" class="btn btn-primary">
+                    <i class="bi bi-plus-lg me-1"></i>Create Todo
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+    <aside class="index-notes">
+        <div class="card quick-notes-card shadow-sm border-0 h-100">
+            <div class="card-header bg-body d-flex align-items-center justify-content-between py-3">
+                <h2 class="h6 mb-0">
+                    <i class="bi bi-journal-text me-2 text-primary"></i>Quick Notes
+                </h2>
+                <small id="quick-notes-status" class="text-muted">Saved</small>
+            </div>
+            <div class="card-body p-3 pt-2">
+                <div id="quick-notes-editor">{{ quick_notes.content | safe }}</div>
+            </div>
+        </div>
+    </aside>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+<script>
+    const quickNotesQuill = new Quill('#quick-notes-editor', {
+        theme: 'snow',
+        placeholder: 'Jot down quick thoughts, links, or reminders...',
+        modules: {
+            toolbar: [
+                [{ header: [1, 2, 3, false] }],
+                ['bold', 'italic', 'underline', 'strike'],
+                [{ list: 'ordered' }, { list: 'bullet' }],
+                ['blockquote', 'code-block'],
+                ['link'],
+                ['clean']
+            ]
+        }
+    });
+
+    const notesStatus = document.getElementById('quick-notes-status');
+    let saveTimer = null;
+    let saveRequest = null;
+
+    function setNotesStatus(text, tone = 'muted') {
+        notesStatus.textContent = text;
+        notesStatus.className = 'text-' + tone;
+    }
+
+    function saveQuickNotes() {
+        if (saveRequest) {
+            saveRequest.abort();
+        }
+
+        setNotesStatus('Saving...', 'secondary');
+        const controller = new AbortController();
+        saveRequest = controller;
+
+        fetch('{{ url_for("quick_notes_api") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content: quickNotesQuill.root.innerHTML }),
+            signal: controller.signal
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Save failed');
+                }
+                setNotesStatus('Saved', 'muted');
+            })
+            .catch(error => {
+                if (error.name !== 'AbortError') {
+                    setNotesStatus('Save failed', 'danger');
+                }
+            })
+            .finally(() => {
+                saveRequest = null;
+            });
+    }
+
+    quickNotesQuill.on('text-change', function () {
+        setNotesStatus('Unsaved', 'warning');
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(saveQuickNotes, 800);
+    });
+</script>
+{% endblock %}
