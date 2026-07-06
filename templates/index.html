@@ -75,13 +75,17 @@
         {% endif %}
 
         {% if todos %}
-            <div class="row g-3">
+            <div class="row g-3" id="todo-list">
                 {% for todo in todos %}
-                <div class="col-12">
+                <div class="col-12 todo-item" data-todo-id="{{ todo.id }}">
                     <div class="card todo-card shadow-sm border-0 {% if todo.completed %}border-start border-success border-4{% elif todo.is_overdue %}border-start border-danger border-4{% else %}border-start border-primary border-4{% endif %}">
                         <div class="card-body">
                             <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
-                                <div class="flex-grow-1">
+                                <div class="d-flex align-items-start gap-2 flex-grow-1 min-w-0">
+                                    <button type="button" class="btn btn-sm btn-link text-muted drag-handle px-1" title="Drag to reorder" aria-label="Drag to reorder">
+                                        <i class="bi bi-grip-vertical"></i>
+                                    </button>
+                                    <div class="flex-grow-1 min-w-0">
                                     <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
                                         {% if todo.completed %}
                                             <span class="badge text-bg-success"><i class="bi bi-check-circle me-1"></i>Completed</span>
@@ -115,6 +119,7 @@
                                     {% else %}
                                     <p class="text-muted fst-italic mb-0">No description provided.</p>
                                     {% endif %}
+                                    </div>
                                 </div>
                                 <div class="d-flex flex-wrap gap-2">
                                     <form action="{{ url_for('toggle_todo', todo_id=todo.id) }}" method="post">
@@ -181,8 +186,52 @@
 {% endblock %}
 
 {% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
 <script>
+    const todoList = document.getElementById('todo-list');
+    if (todoList) {
+        let reorderRequest = null;
+
+        new Sortable(todoList, {
+            animation: 150,
+            handle: '.drag-handle',
+            ghostClass: 'todo-sortable-ghost',
+            dragClass: 'todo-sortable-drag',
+            onEnd: function () {
+                const order = Array.from(todoList.querySelectorAll('.todo-item'))
+                    .map(item => parseInt(item.dataset.todoId, 10));
+
+                if (reorderRequest) {
+                    reorderRequest.abort();
+                }
+
+                const controller = new AbortController();
+                reorderRequest = controller;
+
+                fetch('{{ url_for("reorder_todos") }}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ order }),
+                    signal: controller.signal
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Reorder failed');
+                        }
+                    })
+                    .catch(error => {
+                        if (error.name !== 'AbortError') {
+                            window.location.reload();
+                        }
+                    })
+                    .finally(() => {
+                        reorderRequest = null;
+                    });
+            }
+        });
+    }
+
     const quickNotesQuill = new Quill('#quick-notes-editor', {
         theme: 'snow',
         placeholder: 'Jot down quick thoughts, links, or reminders...',

@@ -48,6 +48,7 @@ class Todo(db.Model):
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     due_date = db.Column(db.Date, nullable=True)
     completed = db.Column(db.Boolean, default=False, nullable=False)
+    sort_order = db.Column(db.Integer, default=0, nullable=False, index=True)
     categories = db.relationship("Category", secondary=todo_categories, back_populates="todos")
 
     @property
@@ -75,6 +76,13 @@ def migrate_db():
         if "due_date" not in columns:
             with db.engine.begin() as connection:
                 connection.execute(text("ALTER TABLE todo ADD COLUMN due_date DATE"))
+        if "sort_order" not in columns:
+            with db.engine.begin() as connection:
+                connection.execute(text("ALTER TABLE todo ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0"))
+            todos = Todo.query.order_by(Todo.created_at.desc()).all()
+            for index, todo in enumerate(todos):
+                todo.sort_order = index
+            db.session.commit()
 
 
 def parse_tag_names(raw_tags):
@@ -148,7 +156,7 @@ with app.app_context():
 def index():
     filter_status = request.args.get("filter", "all")
     selected_category_ids = get_selected_category_ids()
-    query = Todo.query.order_by(Todo.created_at.desc())
+    query = Todo.query.order_by(Todo.sort_order.asc(), Todo.created_at.desc())
 
     if filter_status == "active":
         query = query.filter_by(completed=False)
@@ -171,6 +179,26 @@ def index():
         selected_category_ids=selected_category_ids,
         quick_notes=quick_notes,
     )
+
+
+@app.route("/api/todos/reorder", methods=["POST"])
+def reorder_todos():
+    payload = request.get_json(silent=True) or {}
+    order = payload.get("order")
+    if not isinstance(order, list) or not order:
+        return jsonify({"ok": False, "error": "Invalid order"}), 400
+    if not all(isinstance(todo_id, int) for todo_id in order):
+        return jsonify({"ok": False, "error": "Invalid order"}), 400
+
+    todos_by_id = {todo.id: todo for todo in Todo.query.filter(Todo.id.in_(order)).all()}
+    if len(todos_by_id) != len(order):
+        return jsonify({"ok": False, "error": "Invalid todo ids"}), 400
+
+    for index, todo_id in enumerate(order):
+        todos_by_id[todo_id].sort_order = index
+
+    db.session.commit()
+    return jsonify({"ok": True})
 
 
 @app.route("/api/quick-notes", methods=["GET", "POST"])
@@ -202,7 +230,9 @@ def create_todo():
                 **form_context(title=title, description=description, due_date=request.form.get("due_date", ""), tags=tags),
             )
 
-        todo = Todo(title=title, description=description, due_date=due_date)
+        min_sort_order = db.session.query(db.func.min(Todo.sort_order)).scalar()
+        sort_order = (min_sort_order - 1) if min_sort_order is not None else 0
+        todo = Todo(title=title, description=description, due_date=due_date, sort_order=sort_order)
         db.session.add(todo)
         sync_todo_categories(todo, tags)
         db.session.commit()

@@ -49,6 +49,28 @@
             transform: translateY(-2px);
             box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08) !important;
         }
+        .todo-card.todo-sortable-drag,
+        .todo-card.todo-sortable-drag:hover,
+        .todo-item.todo-sortable-drag .todo-card,
+        .todo-item.todo-sortable-drag .todo-card:hover {
+            transform: none;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.12) !important;
+        }
+        .todo-sortable-ghost,
+        .todo-item.todo-sortable-ghost {
+            opacity: 0.45;
+        }
+        .drag-handle {
+            cursor: grab;
+            line-height: 1;
+            margin-top: 0.15rem;
+        }
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+        .drag-handle:hover {
+            color: var(--bs-primary) !important;
+        }
         .todo-title.completed {
             text-decoration: line-through;
             color: #6c757d;
