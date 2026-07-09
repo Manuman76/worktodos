@@ -30,14 +30,23 @@
                         </div>
                         <div class="col-md-6">
                             <label for="tags" class="form-label fw-semibold">Tags</label>
-                            <input type="text" class="form-control" id="tags" name="tags" value="{{ tags }}"
-                                   list="tag-suggestions" placeholder="work, urgent, home">
-                            <datalist id="tag-suggestions">
-                                {% for category in all_categories %}
-                                <option value="{{ category.display_name }}"></option>
-                                {% endfor %}
-                            </datalist>
-                            <div class="form-text">Comma-separated tags. Existing tags are suggested as you type.</div>
+                            <div class="tag-combobox position-relative">
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="tags" name="tags" value="{{ tags }}"
+                                           placeholder="work, urgent, home" autocomplete="off"
+                                           aria-expanded="false" aria-controls="tag-suggestions-panel"
+                                           aria-autocomplete="list" role="combobox">
+                                    <button type="button" class="btn btn-outline-secondary dropdown-toggle"
+                                            id="tags-dropdown-toggle" data-bs-toggle="dropdown"
+                                            aria-expanded="false" title="Browse all tags">
+                                        <i class="bi bi-tags"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end tag-suggestions-menu shadow" id="tags-dropdown-menu"></ul>
+                                </div>
+                                <ul class="dropdown-menu w-100 tag-suggestions-menu shadow show d-none"
+                                    id="tag-suggestions-panel" role="listbox"></ul>
+                            </div>
+                            <div class="form-text">Comma-separated tags. Pick from the list or type your own.</div>
                         </div>
                     </div>
                     <div class="mb-4">
@@ -56,6 +65,26 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+    .tag-combobox .tag-suggestions-menu {
+        max-height: 14rem;
+        overflow-y: auto;
+    }
+    .tag-combobox #tag-suggestions-panel {
+        position: absolute;
+        top: calc(100% + 0.25rem);
+        left: 0;
+        z-index: 1050;
+    }
+    .tag-combobox .tag-suggestion-item.active,
+    .tag-combobox .tag-suggestion-item:hover {
+        background-color: var(--bs-primary);
+        color: #fff;
+    }
+</style>
 {% endblock %}
 
 {% block extra_scripts %}
@@ -79,5 +108,192 @@
     document.getElementById('todo-form').addEventListener('submit', function () {
         document.getElementById('description').value = quill.root.innerHTML;
     });
+
+    (function () {
+        const AVAILABLE_TAGS = {{ available_categories | map(attribute='name') | list | tojson }};
+        const tagsInput = document.getElementById('tags');
+        const suggestionsPanel = document.getElementById('tag-suggestions-panel');
+        const dropdownMenu = document.getElementById('tags-dropdown-menu');
+        let activeSuggestionIndex = -1;
+
+        function normalizeTag(tag) {
+            return tag.trim().toLowerCase();
+        }
+
+        function parseTags(value) {
+            return value.split(',').map(function (part) { return part.trim(); }).filter(Boolean);
+        }
+
+        function getActivePartial(value) {
+            const parts = value.split(',');
+            return parts[parts.length - 1].trim();
+        }
+
+        function tagAlreadySelected(value, tag) {
+            const target = normalizeTag(tag);
+            return parseTags(value).some(function (existing) {
+                return normalizeTag(existing) === target;
+            });
+        }
+
+        function addTag(value, tag) {
+            const normalized = tag.trim();
+            if (!normalized) {
+                return value;
+            }
+
+            const partial = getActivePartial(value);
+            const withoutPartial = partial
+                ? value.slice(0, Math.max(0, value.lastIndexOf(','))).trim()
+                : value.trim();
+
+            if (tagAlreadySelected(withoutPartial, normalized)) {
+                return withoutPartial;
+            }
+
+            if (!withoutPartial) {
+                return normalized;
+            }
+
+            return withoutPartial + ', ' + normalized;
+        }
+
+        function getAvailableTags(query) {
+            const normalizedQuery = normalizeTag(query || '');
+            const selected = new Set(parseTags(tagsInput.value).map(normalizeTag));
+
+            return AVAILABLE_TAGS.filter(function (tag) {
+                if (selected.has(normalizeTag(tag))) {
+                    return false;
+                }
+                if (!normalizedQuery) {
+                    return true;
+                }
+                return normalizeTag(tag).includes(normalizedQuery);
+            });
+        }
+
+        function createSuggestionItem(tag) {
+            const item = document.createElement('li');
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'dropdown-item tag-suggestion-item';
+            button.textContent = tag;
+            button.dataset.tag = tag;
+            button.setAttribute('role', 'option');
+            item.appendChild(button);
+            return item;
+        }
+
+        function renderTagMenu(menu, tags, emptyText) {
+            menu.innerHTML = '';
+
+            if (!tags.length) {
+                const item = document.createElement('li');
+                const message = document.createElement('span');
+                message.className = 'dropdown-item-text text-muted';
+                message.textContent = emptyText;
+                item.appendChild(message);
+                menu.appendChild(item);
+                return;
+            }
+
+            tags.forEach(function (tag) {
+                menu.appendChild(createSuggestionItem(tag));
+            });
+        }
+
+        function renderSuggestions(tags) {
+            suggestionsPanel.innerHTML = '';
+            activeSuggestionIndex = -1;
+
+            if (!tags.length) {
+                hideSuggestions();
+                return;
+            }
+
+            tags.forEach(function (tag, index) {
+                const item = createSuggestionItem(tag);
+                item.querySelector('.tag-suggestion-item').dataset.index = String(index);
+                suggestionsPanel.appendChild(item);
+            });
+
+            suggestionsPanel.classList.remove('d-none');
+            tagsInput.setAttribute('aria-expanded', 'true');
+        }
+
+        function hideSuggestions() {
+            suggestionsPanel.classList.add('d-none');
+            suggestionsPanel.innerHTML = '';
+            activeSuggestionIndex = -1;
+            tagsInput.setAttribute('aria-expanded', 'false');
+        }
+
+        function updateTagOptions() {
+            const partial = getActivePartial(tagsInput.value);
+            renderTagMenu(dropdownMenu, getAvailableTags(''), 'No tags available');
+            renderSuggestions(getAvailableTags(partial));
+        }
+
+        function selectSuggestion(tag) {
+            tagsInput.value = addTag(tagsInput.value, tag);
+            hideSuggestions();
+            updateTagOptions();
+            tagsInput.focus();
+        }
+
+        function setActiveSuggestion(index) {
+            const items = suggestionsPanel.querySelectorAll('.tag-suggestion-item');
+            items.forEach(function (item, itemIndex) {
+                item.classList.toggle('active', itemIndex === index);
+            });
+            activeSuggestionIndex = index;
+            if (index >= 0 && items[index]) {
+                items[index].scrollIntoView({ block: 'nearest' });
+            }
+        }
+
+        tagsInput.addEventListener('focus', updateTagOptions);
+        tagsInput.addEventListener('input', updateTagOptions);
+
+        tagsInput.addEventListener('keydown', function (event) {
+            const items = suggestionsPanel.querySelectorAll('.tag-suggestion-item');
+            if (suggestionsPanel.classList.contains('d-none') || !items.length) {
+                return;
+            }
+
+            if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                const nextIndex = activeSuggestionIndex < items.length - 1 ? activeSuggestionIndex + 1 : 0;
+                setActiveSuggestion(nextIndex);
+            } else if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                const nextIndex = activeSuggestionIndex > 0 ? activeSuggestionIndex - 1 : items.length - 1;
+                setActiveSuggestion(nextIndex);
+            } else if (event.key === 'Enter' && activeSuggestionIndex >= 0) {
+                event.preventDefault();
+                selectSuggestion(items[activeSuggestionIndex].dataset.tag);
+            } else if (event.key === 'Escape') {
+                hideSuggestions();
+            }
+        });
+
+        document.querySelector('.tag-combobox').addEventListener('mousedown', function (event) {
+            const button = event.target.closest('.tag-suggestion-item');
+            if (!button) {
+                return;
+            }
+            event.preventDefault();
+            selectSuggestion(button.dataset.tag);
+        });
+
+        document.addEventListener('click', function (event) {
+            if (!event.target.closest('.tag-combobox')) {
+                hideSuggestions();
+            }
+        });
+
+        updateTagOptions();
+    })();
 </script>
 {% endblock %}

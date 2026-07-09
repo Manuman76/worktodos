@@ -27,7 +27,7 @@ class Category(db.Model):
 
     @property
     def display_name(self):
-        return self.name.replace("-", " ").title()
+        return self.name
 
 
 class QuickNotes(db.Model):
@@ -92,21 +92,29 @@ def parse_tag_names(raw_tags):
     seen = set()
     tags = []
     for part in parts:
-        normalized = part.strip().lower()
-        if normalized and normalized not in seen:
-            seen.add(normalized)
-            tags.append(normalized)
+        name = part.strip()
+        key = name.lower()
+        if name and key not in seen:
+            seen.add(key)
+            tags.append(name)
     return tags
+
+
+def find_category_by_name(name):
+    key = name.lower()
+    return Category.query.filter(db.func.lower(Category.name) == key).first()
 
 
 def sync_todo_categories(todo, raw_tags):
     tag_names = parse_tag_names(raw_tags)
     categories = []
     for name in tag_names:
-        category = Category.query.filter_by(name=name).first()
+        category = find_category_by_name(name)
         if category is None:
             category = Category(name=name)
             db.session.add(category)
+        elif category.name != name:
+            category.name = name
         categories.append(category)
     todo.categories = categories
 
@@ -137,6 +145,26 @@ def get_quick_notes():
     return notes
 
 
+def get_available_categories(filter_status="all", include_ids=None):
+    include_ids = list(include_ids or [])
+    query = Category.query
+
+    if filter_status == "active":
+        query = query.filter(Category.todos.any(Todo.completed.is_(False)))
+    elif filter_status == "completed":
+        query = query.filter(Category.todos.any(Todo.completed.is_(True)))
+    else:
+        query = query.filter(Category.todos.any())
+
+    categories = {category.id: category for category in query.order_by(Category.name).all()}
+
+    if include_ids:
+        for category in Category.query.filter(Category.id.in_(include_ids)).all():
+            categories[category.id] = category
+
+    return sorted(categories.values(), key=lambda category: category.name)
+
+
 def form_context(todo=None, title="", description="", due_date="", tags=""):
     return {
         "todo": todo,
@@ -144,7 +172,7 @@ def form_context(todo=None, title="", description="", due_date="", tags=""):
         "description": description,
         "due_date": due_date,
         "tags": tags,
-        "all_categories": Category.query.order_by(Category.name).all(),
+        "available_categories": get_available_categories(),
     }
 
 
@@ -152,9 +180,16 @@ with app.app_context():
     migrate_db()
 
 
+def get_filter_status():
+    filter_status = request.args.get("filter", "active")
+    if filter_status not in ("all", "active", "completed"):
+        return "active"
+    return filter_status
+
+
 @app.route("/")
 def index():
-    filter_status = request.args.get("filter", "all")
+    filter_status = get_filter_status()
     selected_category_ids = get_selected_category_ids()
     query = Todo.query.order_by(Todo.sort_order.asc(), Todo.created_at.desc())
 
@@ -167,7 +202,7 @@ def index():
         query = query.filter(Todo.categories.any(Category.id.in_(selected_category_ids)))
 
     todos = query.all()
-    all_categories = Category.query.order_by(Category.name).all()
+    available_categories = get_available_categories(filter_status, selected_category_ids)
 
     quick_notes = get_quick_notes()
 
@@ -175,7 +210,7 @@ def index():
         "index.html",
         todos=todos,
         filter_status=filter_status,
-        all_categories=all_categories,
+        available_categories=available_categories,
         selected_category_ids=selected_category_ids,
         quick_notes=quick_notes,
     )

@@ -13,7 +13,7 @@
                 <p class="text-muted mb-0">Manage tasks with rich descriptions, tags, and due dates.</p>
             </div>
             <div class="d-flex flex-wrap align-items-center gap-2">
-                {% if all_categories %}
+                {% if available_categories %}
                 <form method="get" id="category-filter-form" class="d-flex align-items-center gap-2">
                     <input type="hidden" name="filter" value="{{ filter_status }}">
                     <div class="dropdown">
@@ -26,7 +26,7 @@
                             {% endif %}
                         </button>
                         <ul class="dropdown-menu category-filter-menu p-2 shadow">
-                            {% for category in all_categories %}
+                            {% for category in available_categories %}
                             <li>
                                 <label class="dropdown-item rounded d-flex align-items-center gap-2">
                                     <input class="form-check-input mt-0" type="checkbox" name="categories"
@@ -66,9 +66,9 @@
             </div>
         </div>
 
-        {% if selected_category_ids and all_categories %}
+        {% if selected_category_ids and available_categories %}
         <div class="mb-3">
-            {% for category in all_categories if category.id in selected_category_ids %}
+            {% for category in available_categories if category.id in selected_category_ids %}
             <span class="badge text-bg-secondary tag-badge me-1">{{ category.display_name }}</span>
             {% endfor %}
         </div>
