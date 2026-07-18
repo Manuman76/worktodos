@@ -1,0 +1,8 @@
+/mnt/Extra/sources/worktodos/app.py
+/mnt/Extra/sources/worktodos/repositories/base.py
+/mnt/Extra/sources/worktodos/repositories/quicknotes_repository.py
+/mnt/Extra/sources/worktodos/repositories/category_repository.py
+/mnt/Extra/sources/worktodos/requirements.txt
+/mnt/Extra/sources/worktodos/templates/base.html
+/mnt/Extra/sources/worktodos/templates/index.html
+/mnt/Extra/sources/worktodos/templates/form.html

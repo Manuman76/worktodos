@@ -1,0 +1,34 @@
+{
+  "/mnt/Extra/sources/worktodos/app.py": {
+    "mtime": 1784410566.197293,
+    "hash": "2ab02d2855903f63b479ae0b7ead40d9"
+  },
+  "/mnt/Extra/sources/worktodos/repositories/base.py": {
+    "mtime": 1784410502.7924366,
+    "hash": "04e0ecb53144ed492b062176abe20fc9"
+  },
+  "/mnt/Extra/sources/worktodos/repositories/quicknotes_repository.py": {
+    "mtime": 1784412073.5253398,
+    "hash": "acf11851a80273e3210a0d76db8411e5"
+  },
+  "/mnt/Extra/sources/worktodos/repositories/category_repository.py": {
+    "mtime": 1784411933.8563612,
+    "hash": "121ca35a4fa37ffe8051d5463b78da09"
+  },
+  "/mnt/Extra/sources/worktodos/requirements.txt": {
+    "mtime": 1784408308.6682081,
+    "hash": "4505d69ee73ddc9dc2cb54975fa26af0"
+  },
+  "/mnt/Extra/sources/worktodos/templates/base.html": {
+    "mtime": 1784408308.6682081,
+    "hash": "3a17508ddf911c3513f1f37c4b8e4a22"
+  },
+  "/mnt/Extra/sources/worktodos/templates/index.html": {
+    "mtime": 1784408308.6687195,
+    "hash": "8199c069fa2a0de24ac7a185e6f0595b"
+  },
+  "/mnt/Extra/sources/worktodos/templates/form.html": {
+    "mtime": 1784408308.6687195,
+    "hash": "5221c7acd728189720799849773ee72a"
+  }
+}

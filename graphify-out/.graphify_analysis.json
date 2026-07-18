@@ -1,0 +1,214 @@
+{
+  "communities": {
+    "0": [
+      "app_py",
+      "worktodos_app_created_at_local",
+      "worktodos_app_delete_todo",
+      "worktodos_app_display_name",
+      "worktodos_app_find_category_by_name",
+      "worktodos_app_is_due_today",
+      "worktodos_app_is_overdue",
+      "worktodos_app_migrate_db",
+      "worktodos_app_parse_tag_names",
+      "worktodos_app_toggle_todo"
+    ],
+    "1": [
+      "repositories_base_baserepository",
+      "repositories_base_baserepository_add",
+      "repositories_base_baserepository_all",
+      "repositories_base_baserepository_delete",
+      "repositories_base_baserepository_filter_by",
+      "repositories_base_baserepository_get",
+      "repositories_base_baserepository_init",
+      "worktodos_app_reorder_todos"
+    ],
+    "2": [
+      "worktodos_app_create_todo",
+      "worktodos_app_edit_todo",
+      "worktodos_app_form_context",
+      "worktodos_app_parse_due_date",
+      "worktodos_app_sync_todo_categories",
+      "worktodos_app_todo"
+    ],
+    "3": [
+      "repositories_category_repository_categoryrepository",
+      "repositories_category_repository_categoryrepository_find_by_name",
+      "repositories_category_repository_categoryrepository_init",
+      "repositories_category_repository_categoryrepository_sync_categories",
+      "worktodos_app_category"
+    ],
+    "4": [
+      "baserepository",
+      "repositories_quicknotes_repository_quicknotesrepository",
+      "repositories_quicknotes_repository_quicknotesrepository_get_or_create",
+      "repositories_quicknotes_repository_quicknotesrepository_init",
+      "worktodos_app_quicknotes"
+    ],
+    "5": [
+      "worktodos_app_get_available_categories",
+      "worktodos_app_get_filter_status",
+      "worktodos_app_get_selected_category_ids",
+      "worktodos_app_index"
+    ],
+    "6": [
+      "repositories_base_py",
+      "repositories_category_repository_py",
+      "repositories_quicknotes_repository_py"
+    ],
+    "7": [
+      "worktodos_app_get_quick_notes",
+      "worktodos_app_quick_notes_api"
+    ]
+  },
+  "cohesion": {
+    "0": 0.2,
+    "1": 0.25,
+    "2": 0.47,
+    "3": 0.4,
+    "4": 0.4,
+    "5": 0.5,
+    "6": 0.67,
+    "7": 1.0
+  },
+  "gods": [
+    {
+      "id": "repositories_category_repository_categoryrepository",
+      "label": "CategoryRepository",
+      "degree": 11
+    },
+    {
+      "id": "repositories_base_baserepository",
+      "label": "BaseRepository",
+      "degree": 9
+    },
+    {
+      "id": "repositories_quicknotes_repository_quicknotesrepository",
+      "label": "QuickNotesRepository",
+      "degree": 9
+    },
+    {
+      "id": "worktodos_app_index",
+      "label": "index()",
+      "degree": 5
+    },
+    {
+      "id": "worktodos_app_create_todo",
+      "label": "create_todo()",
+      "degree": 5
+    },
+    {
+      "id": "worktodos_app_todo",
+      "label": "Todo",
+      "degree": 4
+    },
+    {
+      "id": "worktodos_app_sync_todo_categories",
+      "label": "sync_todo_categories()",
+      "degree": 4
+    },
+    {
+      "id": "worktodos_app_get_quick_notes",
+      "label": "get_quick_notes()",
+      "degree": 4
+    },
+    {
+      "id": "worktodos_app_get_available_categories",
+      "label": "get_available_categories()",
+      "degree": 4
+    },
+    {
+      "id": "worktodos_app_form_context",
+      "label": "form_context()",
+      "degree": 4
+    }
+  ],
+  "surprises": [
+    {
+      "source": "Category",
+      "target": "QuickNotesRepository",
+      "source_files": [
+        "app.py",
+        "repositories/quicknotes_repository.py"
+      ],
+      "confidence": "INFERRED",
+      "relation": "uses",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; bridges separate communities"
+    },
+    {
+      "source": "QuickNotes",
+      "target": "CategoryRepository",
+      "source_files": [
+        "app.py",
+        "repositories/category_repository.py"
+      ],
+      "confidence": "INFERRED",
+      "relation": "uses",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; bridges separate communities"
+    },
+    {
+      "source": "Todo",
+      "target": "CategoryRepository",
+      "source_files": [
+        "app.py",
+        "repositories/category_repository.py"
+      ],
+      "confidence": "INFERRED",
+      "relation": "uses",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; bridges separate communities"
+    },
+    {
+      "source": "Todo",
+      "target": "QuickNotesRepository",
+      "source_files": [
+        "app.py",
+        "repositories/quicknotes_repository.py"
+      ],
+      "confidence": "INFERRED",
+      "relation": "uses",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; bridges separate communities"
+    },
+    {
+      "source": "sync_todo_categories()",
+      "target": "CategoryRepository",
+      "source_files": [
+        "app.py",
+        "repositories/category_repository.py"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; bridges separate communities"
+    }
+  ],
+  "questions": [
+    {
+      "type": "bridge_node",
+      "question": "Why does `CategoryRepository` connect `Community 3` to `Community 1`, `Community 2`, `Community 4`, `Community 5`, `Community 6`?",
+      "why": "High betweenness centrality (0.292) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `BaseRepository` connect `Community 1` to `Community 3`, `Community 4`, `Community 6`?",
+      "why": "High betweenness centrality (0.258) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `QuickNotesRepository` connect `Community 4` to `Community 1`, `Community 2`, `Community 3`, `Community 6`, `Community 7`?",
+      "why": "High betweenness centrality (0.198) - this node is a cross-community bridge."
+    },
+    {
+      "type": "verify_inferred",
+      "question": "Are the 6 inferred relationships involving `CategoryRepository` (e.g. with `Category` and `QuickNotes`) actually correct?",
+      "why": "`CategoryRepository` has 6 INFERRED edges - model-reasoned connections that need verification."
+    },
+    {
+      "type": "verify_inferred",
+      "question": "Are the 2 inferred relationships involving `BaseRepository` (e.g. with `QuickNotesRepository` and `CategoryRepository`) actually correct?",
+      "why": "`BaseRepository` has 2 INFERRED edges - model-reasoned connections that need verification."
+    },
+    {
+      "type": "verify_inferred",
+      "question": "Are the 5 inferred relationships involving `QuickNotesRepository` (e.g. with `Category` and `QuickNotes`) actually correct?",
+      "why": "`QuickNotesRepository` has 5 INFERRED edges - model-reasoned connections that need verification."
+    }
+  ]
+}

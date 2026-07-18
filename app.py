@@ -4,6 +4,8 @@ from datetime import date, datetime, timezone
 
 from flask import Flask, flash, jsonify, redirect, render_template, request, url_for
 from flask_sqlalchemy import SQLAlchemy
+from repositories.category_repository import CategoryRepository
+from repositories.quicknotes_repository import QuickNotesRepository
 from sqlalchemy import inspect, text
 
 app = Flask(__name__)
@@ -106,17 +108,7 @@ def find_category_by_name(name):
 
 
 def sync_todo_categories(todo, raw_tags):
-    tag_names = parse_tag_names(raw_tags)
-    categories = []
-    for name in tag_names:
-        category = find_category_by_name(name)
-        if category is None:
-            category = Category(name=name)
-            db.session.add(category)
-        elif category.name != name:
-            category.name = name
-        categories.append(category)
-    todo.categories = categories
+    CategoryRepository(db, Category, Todo).sync_categories(todo, raw_tags)
 
 
 def parse_due_date(raw_due_date):
@@ -137,32 +129,11 @@ def get_selected_category_ids():
 
 
 def get_quick_notes():
-    notes = QuickNotes.query.first()
-    if notes is None:
-        notes = QuickNotes(content="")
-        db.session.add(notes)
-        db.session.commit()
-    return notes
+    return QuickNotesRepository(db, QuickNotes).get_or_create()
 
 
 def get_available_categories(filter_status="all", include_ids=None):
-    include_ids = list(include_ids or [])
-    query = Category.query
-
-    if filter_status == "active":
-        query = query.filter(Category.todos.any(Todo.completed.is_(False)))
-    elif filter_status == "completed":
-        query = query.filter(Category.todos.any(Todo.completed.is_(True)))
-    else:
-        query = query.filter(Category.todos.any())
-
-    categories = {category.id: category for category in query.order_by(Category.name).all()}
-
-    if include_ids:
-        for category in Category.query.filter(Category.id.in_(include_ids)).all():
-            categories[category.id] = category
-
-    return sorted(categories.values(), key=lambda category: category.name)
+    return CategoryRepository(db, Category, Todo).get_available(filter_status, include_ids)
 
 
 def form_context(todo=None, title="", description="", due_date="", tags=""):
