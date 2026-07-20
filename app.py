@@ -1,6 +1,10 @@
 import os
 import re
+import sys
 from datetime import date, datetime, timezone
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from flask import Flask, flash, jsonify, redirect, render_template, request, url_for
 from flask_sqlalchemy import SQLAlchemy
